@@ -1,0 +1,226 @@
+//
+// Created Anton Gorokhov
+//
+
+#ifdef lolipop
+#define _GLIBCXX_DEBUG
+#endif
+
+/*
+ * Help! I need somebody
+ * Help! Almost anybody
+ * Help! You know I need someone
+ * Help!
+*/
+
+#include <iostream>
+#include <cstddef>
+#include <vector>
+#include <cstring>
+#include <string>
+#include <algorithm>
+#include <set>
+#include <map>
+#include <ctime>
+#include <unordered_map>
+#include <random>
+#include <iomanip>
+#include <cmath>
+#include <queue>
+#include <unordered_set>
+#include <cassert>
+#include <bitset>
+#include <deque>
+#include <utility>
+
+#define int long long
+#define ll long long
+#define all(x) x.begin(), x.end()
+#define rall(x) x.rbegin(), x.rend()
+#define ld long double
+
+using namespace std;
+
+mt19937 rnd(229);
+
+inline void fastio() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(nullptr);
+    cout.tie(nullptr);
+}
+
+struct point {
+    int x, y;
+    point() {}
+    point(int _x, int _y) : x(_x), y(_y) {}
+    void get() {
+        cin >> x >> y;
+    }
+};
+
+ll dlt(const point&a, const point &b) {
+    return 1LL * (a.x - b.x) * (a.x - b.x) + 1LL * (a.y - b.y) * (a.y - b.y);
+}
+
+const int inf = 2e9 + 123;
+
+struct supermegaflow {
+    struct edge {
+        int a, b, c;
+        int flow = 0;
+        edge() {}
+        edge(int _a, int _b, int _c) : a(_a), b(_b), c(_c) {}
+    };
+    vector<edge> E;
+    vector<vector<int> > g;
+    int N;
+    int s = 0, t = 1;
+    supermegaflow() {}
+    supermegaflow(int _N) : N(_N) {
+        E.clear();
+        g.assign(N, vector<int>(0));
+    }
+    void insert_edge(int a, int b, int c) {
+        g[a].push_back((int) E.size());
+        E.push_back(edge(a, b, c));
+        g[b].push_back((int) E.size());
+        E.push_back(edge(b, a, 0));
+    }
+    vector<int> usd, d, ind;
+    bool bfs() {
+        queue<int> Q;
+        usd.assign(N, 0);
+        d.assign(N, -2);
+        usd[s] = 1;
+        d[s] = 0;
+        Q.push(s);
+        while (!Q.empty()) {
+            int from = Q.front();
+            Q.pop();
+            usd[from] = 1;
+            for (auto i : g[from]) {
+                edge &e = E[i];
+                if (!usd[e.b] && e.c - e.flow > 0) {
+                    usd[e.b] = 1;
+                    d[e.b] = d[e.a] + 1;
+                    Q.push(e.b);
+                }
+            }
+        }
+        return usd[t];
+    }
+    vector<int> path;
+    // path contains indexes of edges
+    bool dfs(int now, int target) {
+        if (d[now] >= d[target]) return now == target;
+        for (; ind[now] < (int) g[now].size(); ++ind[now]) {
+            edge &e = E[g[now][ind[now]]];
+            if (d[e.a] + 1 == d[e.b] && e.c - e.flow > 0 && dfs(e.b, target)) {
+                path.push_back(g[now][ind[now]]);
+                return true;
+            }
+        }
+        return false;
+    }
+    void relax() {
+        if ((int) path.size() == 0) return;
+        int mx = inf;
+        for (auto i : path) {
+            mx = min(mx, E[i].c - E[i].flow);
+        }
+        for (auto i : path) {
+            E[i].flow += mx;
+            E[i ^ 1].flow -= mx;
+        }
+    }
+    void max_flow() {
+        while (bfs()) {
+            path.clear();
+            ind.assign(N, 0);
+            while (dfs(s, t)) {
+                relax();
+                path.clear();
+            }
+        }
+    }
+    int count_flow() {
+        int res = 0;
+        for (auto i : g[s]) {
+            res += max(0, E[i].flow);
+        }
+        return res;
+    }
+    void assign(int _N) {
+        N = _N;
+        g.assign(N, vector<int>(0));
+        E.clear();
+    }
+} SuperMegaMaxFlow;
+
+inline bool ok(ll delta, const vector<point> &people, const vector<point> &places, const vector<int> &capacity) {
+    SuperMegaMaxFlow.assign((int) people.size() + (int) places.size() + 10);
+    for (int i = 0; i < (int) people.size(); ++i) {
+        SuperMegaMaxFlow.insert_edge(SuperMegaMaxFlow.s, i + 2, 1);
+    }
+    for (int i = 0; i < (int) places.size(); ++i) {
+        SuperMegaMaxFlow.insert_edge(i + (int) people.size() + 2, SuperMegaMaxFlow.t, capacity[i]);
+    }
+    for (int i = 0; i < (int) people.size(); ++i) {
+        for (int j = 0; j < (int) places.size(); ++j) {
+            if (dlt(people[i], places[j]) <= delta) {
+                SuperMegaMaxFlow.insert_edge(i + 2, j + 2 + (int) people.size(), 1);
+            }
+        }
+    }
+    SuperMegaMaxFlow.max_flow();
+    int flow = SuperMegaMaxFlow.count_flow();
+    return flow == (int) people.size();
+}
+
+inline void solve() {
+    int n, m;
+    cin >> n >> m;
+    vector<point> people(n);
+    for (int i = 0; i < n; ++i) {
+        people[i].get();
+    }
+    vector<point> places(m);
+    vector<int> capacity(m);
+    for (int i = 0; i < m; ++i) {
+        places[i].get();
+        cin >> capacity[i];
+    }
+    vector<ll> dist;
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < m; ++j) {
+            dist.push_back(dlt(people[i], places[j]));
+        }
+    }
+    sort(all(dist));
+    dist.erase(unique(all(dist)), dist.end());
+    int l = -1, r = (int) dist.size() - 1;
+    while (l + 1 < r) {
+        int mid = (l + r) / 2;
+        if (ok(dist[mid], people, places, capacity)) {
+            r = mid;
+        } else {
+            l = mid;
+        }
+    }
+    ld ans = sqrt(dist[r]);
+    cout << fixed << setprecision(20) << ans << '\n';
+}
+
+signed main() {
+#ifdef lolipop
+    freopen("input.txt", "r", stdin);
+#else
+    fastio();
+#endif
+    int T = 1;
+//    cin >> T;
+    while (T--) {
+        solve();
+    }
+    return 0;
+}
