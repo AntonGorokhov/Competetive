@@ -1,0 +1,162 @@
+//
+// Created Anton Gorokhov
+//
+
+#ifdef lolipop
+#define _GLIBCXX_DEBUG
+#endif
+
+/*
+ * Help! I need somebody
+ * Help! Almost anybody
+ * Help! You know I need someone
+ * Help!
+*/
+
+#include <iostream>
+#include <cstddef>
+#include <vector>
+#include <cstring>
+#include <string>
+#include <algorithm>
+#include <set>
+#include <map>
+#include <ctime>
+#include <unordered_map>
+#include <random>
+#include <iomanip>
+#include <cmath>
+#include <queue>
+#include <unordered_set>
+#include <cassert>
+#include <bitset>
+#include <deque>
+#include <utility>
+
+#define int long long
+#define ll long long
+#define all(x) x.begin(), x.end()
+#define rall(x) x.rbegin(), x.rend()
+#define ld long double
+
+using namespace std;
+
+mt19937 rnd(229);
+
+inline void fastio() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(nullptr);
+    cout.tie(nullptr);
+}
+
+struct edge {
+    int a, b, c;
+    edge() {}
+    edge(int _a, int _b, int _c) : a(_a), b(_b), c(_c) {}
+    void read() {
+        cin >> a >> b >> c;
+        a--, b--;
+    }
+};
+
+struct dsu {
+    int n;
+    vector<int> usd;
+    vector<int> p;
+    vector<int> sz;
+    int localans = 0;
+    dsu(int _n) : n(_n) {
+        usd.assign(n, 0);
+        sz.assign(n, 1);
+        p.resize(n);
+        for (int i = 0; i < n; ++i) {
+            p[i] = i;
+        }
+    }
+    int counter = 1;
+    void clear() {
+        counter++;
+        localans = 0;
+    }
+    int get(int x) {
+        if (usd[x] != counter) return x;
+        return (x == p[x] ? x : p[x] = get(p[x]));
+    }
+    int func(int x) {
+        return x * (x - 1);
+    }
+    void unite(int a, int b) {
+        if (usd[a] != counter) {
+            p[a] = a;
+            sz[a] = 1;
+        }
+        if (usd[b] != counter) {
+            p[b] = b;
+            sz[b] = 1;
+        }
+        usd[a] = usd[b] = counter;
+        a = get(a), b = get(b);
+        localans -= func(sz[a]);
+        localans -= func(sz[b]);
+        if (sz[a] >= sz[b]) {
+            swap(a, b);
+        }
+        sz[b] += sz[a];
+        p[a] = b;
+        localans += func(sz[b]);
+    }
+};
+
+const int maxN = 1e6 + 123;
+int ans[maxN];
+vector<int> ind[maxN];
+
+void solve() {
+    int n;
+    cin >> n;
+    vector<edge> E(n - 1);
+    for (int i = 0; i < n - 1; ++i) {
+        E[i].read();
+    }
+    for (int i = 0; i < n - 1; ++i) {
+        for (int j = 1; j * j <= E[i].c; ++j) {
+            if (E[i].c % j == 0) {
+                ind[j].push_back(i);
+                if (j * j != E[i].c) {
+                    ind[E[i].c / j].push_back(i);
+                }
+            }
+        }
+    }
+    dsu Dsu(n);
+    for (int x = maxN - 1; x >= 1; --x) {
+        for (auto i : ind[x]) {
+            Dsu.unite(E[i].a, E[i].b);
+        }
+        ans[x] = Dsu.localans;
+        Dsu.clear();
+        for (int i = 2; i * x < maxN; ++i) {
+            ans[x] -= ans[i * x];
+        }
+
+    }
+    int total = 0;
+    for (int i = 1; i < maxN; ++i) {
+        total += i * ans[i];
+    }
+    cout << total << '\n';
+}
+
+signed main() {
+#ifdef lolipop
+    freopen("input.txt", "r", stdin);
+#else
+    fastio();
+#endif
+    int T = 1;
+//    cin >> T;
+    while (T--) {
+        solve();
+    }
+    return 0;
+}
