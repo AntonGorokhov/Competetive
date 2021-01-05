@@ -1,0 +1,73 @@
+//
+// Created Anton Gorokhov
+//
+
+#ifdef lolipop
+#define _GLIBCXX_DEBUG
+#endif
+
+/*
+ * Help! I need somebody
+ * Help! Almost anybody
+ * Help! You know I need someone
+ * Help!
+*/
+
+#include <iostream>
+#include <cstddef>
+#include <vector>
+#include <cstring>
+#include <string>
+#include <algorithm>
+#include <set>
+#include <map>
+#include <ctime>
+#include <unordered_map>
+#include <random>
+#include <iomanip>
+#include <cmath>
+#include <queue>
+#include <unordered_set>
+#include <cassert>
+#include <bitset>
+#include <deque>
+#include <utility>
+
+#define int long long
+#define ll long long
+#define all(x) x.begin(), x.end()
+#define rall(x) x.rbegin(), x.rend()
+#define ld long double
+
+using namespace std;
+
+struct point {
+    int x, y;
+    point() {}
+    point(int _x, int _y) : x(_x), y(_y) {}
+    inline void read() {
+        cin >> x >> y;
+    }
+};
+
+const int operator ^ (const point &a, const point &b) {
+    return a.x * b.y - a.y * b.x;
+}
+
+void solve() {
+
+}
+
+signed main() {
+#ifdef lolipop
+    freopen("input.txt", "r", stdin);
+#else
+    fastio();
+#endif
+    int T = 1;
+    cin >> T;
+    while (T--) {
+        solve();
+    }
+    return 0;
+}
