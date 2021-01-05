@@ -1,0 +1,365 @@
+//
+// Created Anton Gorokhov
+//
+
+#ifdef lolipop
+#define _GLIBCXX_DEBUG
+#endif
+
+/*
+ * Help! I need somebody
+ * Help! Almost anybody
+ * Help! You know I need someone
+ * Help!
+*/
+
+#include <iostream>
+#include <cstddef>
+#include <vector>
+#include <cstring>
+#include <string>
+#include <algorithm>
+#include <set>
+#include <map>
+#include <ctime>
+#include <unordered_map>
+#include <random>
+#include <iomanip>
+#include <cmath>
+#include <queue>
+#include <unordered_set>
+#include <cassert>
+#include <bitset>
+#include <deque>
+#include <utility>
+
+//#define int long long
+#define ll long long
+#define all(x) x.begin(), x.end()
+#define rall(x) x.rbegin(), x.rend()
+#define ld long double
+
+//#include <ext/pb_ds/assoc_container.hpp>
+//using namespace __gnu_pbds;
+//cc_hash_table<int, int> table;
+
+using namespace std;
+
+const int MAX_MEM = 4e8;
+int mpos = 0;
+char mem[MAX_MEM];
+inline void * operator new ( size_t n ) {
+    char *res = mem + mpos;
+    mpos += n;
+    assert(mpos <= MAX_MEM);
+    return (void *)res;
+}
+inline void operator delete ( void * ) { }
+
+//mt19937 rnd(229);
+
+inline void fastio() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(nullptr);
+    cout.tie(nullptr);
+}
+
+struct dsu {
+    int n;
+    vector<int> p, s, dp;
+    vector<int> q, old_p, old_s;
+    vector<int> old_dp;
+    dsu() {}
+    dsu(int _n) : n(_n) {
+        s.assign(n, 1);
+        p.resize(n);
+        dp.assign(n, 0);
+        for (int i = 0; i < n; ++i) {
+            p[i] = i;
+        }
+    }
+    inline int get(int v) {
+        while (p[v] != v) {
+            v = p[v];
+        }
+        return v;
+    }
+    inline void set_dp(int a) {
+        dp[a] = 1;
+    }
+    inline bool unite(int a, int b, bool rb = true) {
+        a = get(a), b = get(b);
+        if (a == b) return false;
+        if (s[a] > s[b]) {
+            swap(a, b);
+        }
+        if (rb) {
+            old_p.push_back(a);
+            q.push_back(b);
+            old_s.push_back(s[a]);
+            old_dp.push_back(dp[a]);
+        }
+        dp[b] += dp[a];
+        s[b] += s[a];
+        p[a] = b;
+        return true;
+    }
+    inline void roll_back() {
+        if (old_p.size() == 0) {
+            return;
+        }
+        p[old_p.back()] = old_p.back();
+        s[old_p.back()] = old_s.back();
+        dp[old_p.back()] = old_dp.back();
+        dp[q.back()] -= old_dp.back();
+        s[q.back()] -= s[old_p.back()];
+        old_p.pop_back();
+        old_s.pop_back();
+        old_dp.pop_back();
+        q.pop_back();
+    }
+};
+
+
+const int maxN = 1e6 + 123;
+
+//map<pair<int, int>, int> to;
+unordered_map<ll, int> to;
+int counter = 0;
+
+struct pointquery {
+    int t, x, y;
+    pointquery() {}
+    pointquery(int _t, int _x, int _y) : t(_t), x(_x), y(_y) {}
+    inline void read() {
+        cin >> t >> y >> x;
+        if (to.find(1LL * x * maxN + y) == to.end()) {
+            to[1LL * x * maxN + y] = counter++;
+            counter++;
+        }
+    }
+};
+
+struct query {
+    int l, r, a, b;
+    query() {}
+    query(int _l, int _r, int _a, int _b) : l(_l), r(_r), a(_a), b(_b) {}
+};
+
+inline int upper(const set<int> &s, int x) {
+    auto it = s.upper_bound(x);
+    return *it;
+}
+
+inline int lower(const set<int> &s, int x) {
+    auto it = s.lower_bound(x);
+    --it;
+    return *it;
+}
+
+vector<pair<int, int> > tree[4 * maxN];
+
+inline void push_query(int v, int lb, int rb, const query &q) {
+    int L = q.l, R = q.r;
+    if (R <= L) return;
+    if (L >= rb || lb >= R) return;
+    if (L <= lb && R >= rb) {
+        tree[v].emplace_back(q.a, q.b);
+        return;
+    }
+    int m = (lb + rb) / 2;
+    push_query(2 * v + 1, lb, m, q);
+    push_query(2 * v + 2, m, rb, q);
+}
+
+vector<int> answer;
+
+void dfs(int v, int lb, int rb, dsu &Dsu) {
+    int hm = 0;
+    for (auto i : tree[v]) {
+        hm += Dsu.unite(i.first, i.second);
+    }
+    if (lb + 1 < rb) {
+        int m = (lb + rb) / 2;
+        dfs(2 * v + 1, lb, m, Dsu);
+        dfs(2 * v + 2, m, rb, Dsu);
+    } else {
+        answer.push_back(Dsu.dp[Dsu.get(counter)]);
+    }
+    for (int i = 0; i < hm; ++i) {
+        Dsu.roll_back();
+    }
+}
+
+int k;
+
+//map<pair<int, int>, int> timecodes;
+unordered_map<ll, int> timecodes;
+
+inline void insert_edge(int a, int b, int _) {
+    if (a > b) swap(a, b);
+    timecodes[1LL * a * maxN + b] = _;
+}
+
+inline void delete_edge(int a, int b, int _) {
+    if (a > b) swap(a, b);
+    int &x = timecodes[1LL * a * maxN + b];
+    push_query(0, 0, k + 2, query(x, _, a, b));
+    x = -1;
+}
+
+inline void solve() {
+    int n, m;
+    cin >> n >> m >> k;
+    vector<int> begins(m, 0), ends(m, 0);
+    vector<int> lefts(n, 0), rights(n, 0);
+    for (int i = 0; i < m; ++i) {
+        begins[i] = counter++;
+        to[1LL * (i + 1) * maxN + 0LL] = begins[i];
+    }
+    for (int i = 0; i < m; ++i) {
+        ends[i] = counter++;
+        to[1LL * (i + 1) * maxN  + n + 1LL] = ends[i];
+    }
+    for (int i = 0; i < n; ++i) {
+        lefts[i] = counter++;
+        to[0LL * maxN + i + 1] = lefts[i];
+    }
+    for (int i = 0; i < n; ++i) {
+        rights[i] = counter++;
+        to[1LL * (m + 1) * maxN + i + 1] = rights[i];
+    }
+    /*   0 1 2 3 4
+     * 0  -------
+     * 1 |       |
+     * 2 |       |
+     * 3  -------
+     */
+    vector<pointquery> pQ(k);
+    for (int _ = 0; _ < k; ++_) {
+        pQ[_].read();
+    }
+    vector<set<int> > x(n + 2), y(m + 2);
+    for (int i = 0; i < m; ++i) {
+        x[0].insert(i + 1);
+        x[n + 1].insert(i + 1);
+        y[i + 1].insert(0);
+        y[i + 1].insert(n + 1);
+    }
+    for (int i = 0; i < n; ++i) {
+        y[0].insert(i + 1);
+        y[m + 1].insert(i + 1);
+        x[i + 1].insert(0);
+        x[i + 1].insert(m + 1);
+    }
+    dsu Dsu(counter + 1);
+    for (int i = 0; i < m; ++i) {
+        Dsu.set_dp(ends[i]);
+    }
+
+    for (int i = 0; i < m; ++i) {
+        insert_edge(begins[i], ends[i], 0);
+//        Dsu.unite(begins[i], ends[i]);
+    }
+
+    for (int i = 0; i < n; ++i) {
+        insert_edge(lefts[i], rights[i], 0);
+//        Dsu.unite(begins[i], ends[i]);
+    }
+
+
+    for (int i = 0; i < m; ++i) {
+        Dsu.unite(begins[i], counter, false);
+    }
+
+//    map<int, map<int, int> > is;
+    unordered_map<int, int> is;
+
+    for (int _ = 0; _ < k; ++_) {
+        pointquery &q = pQ[_];
+        pair<int, int> up = pair(q.x, lower(y[q.x], q.y));
+        int u = to[1LL * up.first * maxN + up.second];
+        pair<int, int> down = pair(q.x, upper(y[q.x], q.y));
+        int d = to[1LL * down.first * maxN + down.second];
+        if (is[1LL * down.first * maxN + down.second] != 0) {
+            d++;
+        }
+        pair<int, int> right = pair(upper(x[q.y], q.x), q.y);
+        int r = to[1LL * right.first * maxN + right.second];
+        if (is[1LL * right.first * maxN + right.second] != 0) {
+            if (is[1LL * right.first * maxN + right.second] == 2) {
+                r++;
+            }
+        }
+        pair<int, int> left = pair(lower(x[q.y], q.x), q.y);
+        int l = to[1LL * left.first * maxN + left.second];
+        if (is[1LL * left.first * maxN + left.second] != 0) {
+            if (is[1LL * left.first * maxN + left.second] == 1) {
+                l++;
+            }
+        }
+        int index = to[1LL * q.x * maxN +  q.y];
+        if (q.t != 0) {
+            if (q.t == 1) {
+                delete_edge(u, d, _ + 1);
+                delete_edge(r, l, _ + 1);
+                insert_edge(u, index + 1, _ + 1);
+                insert_edge(index + 1, r, _ + 1);
+                insert_edge(l, index, _ + 1);
+                insert_edge(index, d, _ + 1);
+            } else {
+                delete_edge(u, d, _ + 1);
+                delete_edge(r, l, _ + 1);
+                insert_edge(u, index + 1, _ + 1);
+                insert_edge(index + 1, l, _ + 1);
+                insert_edge(d, index, _ + 1);
+                insert_edge(index, r, _ + 1);
+            }
+            x[q.y].insert(q.x);
+            y[q.x].insert(q.y);
+        } else {
+            if (is[q.x * maxN + q.y] == 1) {
+                insert_edge(u, d, _ + 1);
+                insert_edge(r, l, _ + 1);
+                delete_edge(u, index + 1, _ + 1);
+                delete_edge(index + 1, r, _ + 1);
+                delete_edge(l, index, _ + 1);
+                delete_edge(index, d, _ + 1);
+            } else {
+                insert_edge(u, d, _ + 1);
+                insert_edge(r, l, _ + 1);
+                delete_edge(u, index + 1, _ + 1);
+                delete_edge(index + 1, l, _ + 1);
+                delete_edge(d, index, _ + 1);
+                delete_edge(index, r, _ + 1);
+            }
+            x[q.y].erase(q.x);
+            y[q.x].erase(q.y);
+        }
+        is[1LL * q.x * maxN + q.y] = q.t;
+    }
+    for (auto i : timecodes) {
+        if (i.second != -1) {
+            push_query(0, 0, k + 2, query(i.second, k + 2, (int)(i.first / (1LL * maxN)), (int) (i.first % (1LL * maxN))));
+        }
+    }
+    dfs(0, 0, k + 2, Dsu);
+    for (int i = 1; i <= k; ++i) {
+        cout << answer[i] << '\n';
+    }
+}
+
+
+signed main() {
+#ifdef lolipop
+    freopen("input.txt", "r", stdin);
+#else
+    fastio();
+#endif
+    int T = 1;
+//    cin >> T;
+    while (T--) {
+        solve();
+    }
+    return 0;
+}
