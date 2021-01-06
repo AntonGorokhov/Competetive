@@ -1,0 +1,230 @@
+//
+// Created Anton Gorokhov
+//
+
+#ifdef lolipop
+#define _GLIBCXX_DEBUG
+#endif
+
+/*
+ * Help! I need somebody
+ * Help! Almost anybody
+ * Help! You know I need someone
+ * Help!
+*/
+
+#include <iostream>
+#include <cstddef>
+#include <vector>
+#include <cstring>
+#include <string>
+#include <algorithm>
+#include <set>
+#include <map>
+#include <ctime>
+#include <unordered_map>
+#include <random>
+#include <iomanip>
+#include <cmath>
+#include <queue>
+#include <unordered_set>
+#include <cassert>
+#include <bitset>
+#include <deque>
+#include <utility>
+
+#define int long long
+#define ll long long
+#define all(x) x.begin(), x.end()
+#define rall(x) x.rbegin(), x.rend()
+#define ld long double
+
+using namespace std;
+
+inline void fastio() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(nullptr);
+    cout.tie(nullptr);
+}
+
+struct point {
+    int x, y;
+    point() {}
+    point(int _x, int _y) : x(_x), y(_y) {}
+    inline void read() {
+        cin >> x >> y;
+    }
+};
+
+const int operator ^ (const point &a, const point &b) {
+    return a.x * b.y - a.y * b.x;
+}
+const bool operator == (const point &a, const point &b) {
+    return a.x == b.x && a.y == b.y;
+}
+const point operator - (const point &a, const point &b) {
+    return point(b.x - a.x, b.y - a.y);
+}
+
+int n, k;
+vector<point> points;
+bool found = false;
+vector<pair<int, int> > ans;
+unordered_set<int> s;
+
+void dfs(int cnt = 0) {
+    if (found) return;
+    if (s.size() == 0) {
+        cout << "Yes\n";
+        cout << (int) ans.size() << '\n';
+        for (auto i : ans) {
+            cout << points[i.first].x << ' ' << points[i.first].y << ' ';
+            if (points[i.first] == points[i.second]) {
+                cout << points[i.first].x + 1 << ' ' << points[i.first].y + 1 << ' ';
+            } else {
+                cout << points[i.second].x << ' ' << points[i.second].y << ' ';
+            }
+            cout << '\n';
+        }
+        found = true;
+        return;
+    }
+
+    if (cnt + 1 <= k && (k - cnt) * (k - cnt) + 1 < (int) s.size()) {
+        vector<int> vec;
+        int _ = 0;
+        for (auto i : s) {
+            vec.push_back(i);
+            _++;
+            if (_ >= (k - cnt) * (k - cnt) + 1) break;
+        }
+        for (int i = 0; i < (int) vec.size(); ++i) {
+            for (int j = i + 1; j < (int) vec.size(); ++j) {
+                vector<int> minus;
+                for (auto u : vec) {
+                    if (((points[vec[i]] - points[u]) ^ (points[vec[i]] - points[vec[j]])) == 0) {
+                        minus.push_back(u);
+                    }
+                }
+                if (minus.size() < k - cnt + 1) continue;
+                vector<int> totalminus;
+                for (auto u : s) {
+                    if (((points[vec[i]] - points[u]) ^ (points[vec[i]] - points[vec[j]])) == 0) {
+                        totalminus.push_back(u);
+                    }
+                }
+                for (auto u : totalminus) {
+                    s.erase(u);
+                }
+                ans.emplace_back(vec[i], vec[j]);
+                dfs(cnt + 1);
+                ans.pop_back();
+                for (auto u : totalminus) {
+                    s.insert(u);
+                }
+                return;
+            }
+        }
+        return;
+    }
+
+    vector<int> vec;
+    int _ = 0;
+    for (auto i : s) {
+        vec.push_back(i);
+        _++;
+        if (_ >= k + 1 - cnt) break;
+    }
+    if (cnt + 1 <= k) {
+        if (s.size() == 1) {
+            ans.emplace_back(*s.begin(), *s.begin());
+            s.erase(s.begin());
+            dfs(cnt + 1);
+            return;
+        }
+        for (int i = 0; i < (int) vec.size(); ++i) {
+            for (int j = i + 1; j < (int) vec.size(); ++j) {
+                vector<int> minus;
+                for (auto u : s) {
+                    if (((points[vec[i]] - points[u]) ^ (points[vec[i]] - points[vec[j]])) == 0) {
+                        minus.push_back(u);
+                    }
+                }
+                for (auto u : minus) {
+                    s.erase(u);
+                }
+                ans.emplace_back(vec[i], vec[j]);
+                dfs(cnt + 1);
+                if (found) return;
+                ans.pop_back();
+                for (auto u : minus) {
+                    s.insert(u);
+                }
+            }
+        }
+    }
+}
+
+void solve() {
+    cin >> n >> k;
+    points.resize(n);
+    for (int i = 0; i < n; ++i) {
+        points[i].read();
+    }
+    found = false;
+    ans.clear();
+    s.clear();
+    for (int i = 0; i < n; ++i) {
+        s.insert(i);
+    }
+    if (k <= 6) {
+        dfs();
+        if (!found) {
+            cout << "No\n";
+        }
+    } else {
+        mt19937 rnd(time(nullptr));
+        for (int _ = 0; _ < 50; ++_) {
+            s.clear();
+            for (int i = 0; i < n; ++i) {
+                s.insert(i);
+            }
+            int a = rnd() % n, b = rnd() % n, c = rnd() % n, d = rnd() % n;
+            while (a == b) {
+                b = rnd() % n;
+            }
+//            while (c == b || c == a) {
+//                c = rnd() % n;
+//            }
+//            while (d == c || d == b || d == a) {
+//                d = rnd() % n;
+//            }
+            for (int i = 0; i < n; ++i) {
+                if ( (((points[i] - points[a]) ^ (points[i] - points[b])) == 0)/* || (((points[i] - points[c]) ^ (points[i] - points[d])) == 0)*/) {
+                    s.erase(i);
+                }
+            }
+            found = false;
+            ans.clear();
+            ans.emplace_back(a, b);
+//            ans.emplace_back(c, d);
+            dfs(1);
+            if (found) return;
+        }
+        cout << "No\n";
+    }
+}
+
+signed main() {
+#ifdef lolipop
+    freopen("input.txt", "r", stdin);
+#else
+    fastio();
+#endif
+    int T = 1;
+    cin >> T;
+    while (T--) {
+        solve();
+    }
+    return 0;
+}
